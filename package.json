@@ -1,0 +1,15 @@
+{
+  "name": "ems-vuln-lab",
+  "version": "1.0.0",
+  "description": "EMS SQL Injection Vulnerability Lab — Educational Use Only",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.22.2",
+    "sql.js": "^1.10.3"
+  }
+}
